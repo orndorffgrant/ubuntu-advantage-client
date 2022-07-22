@@ -17,6 +17,12 @@ UA provides support to view, enable, and disable the following Canonical service
 If you need any of those services for your machine, UA is the right tool for you.
 Furthermore, UA is already installed on every Ubuntu system. Try it out by running ``ua help``!
 
+.. autofunction:: uaclient.api.u.pro.version.v1.version
+
+.. autoclass:: uaclient.api.u.pro.version.v1.VersionResult
+   :members:
+
+
 Getting help
 ************
 

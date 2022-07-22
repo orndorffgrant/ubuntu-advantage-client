@@ -17,9 +17,13 @@ class VersionResult(DataObject, AdditionalInfo):
 
     def __init__(self, *, installed_version: str):
         self.installed_version = installed_version
+        """:type: str"""
 
 
-def version(cfg: UAConfig) -> VersionResult:
+def version(cfg: UAConfig = None) -> VersionResult:
+    """
+    :return: u.pro.version.v1.VersionResult
+    """
     try:
         version = get_version()
     except Exception as e:
