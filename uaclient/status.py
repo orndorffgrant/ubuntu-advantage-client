@@ -324,7 +324,9 @@ def _get_config_status(cfg) -> Dict[str, Any]:
     }
 
 
-def status(cfg: UAConfig, show_beta: bool = False) -> Dict[str, Any]:
+def status(
+    cfg: UAConfig, show_beta: bool = False, show_all: bool = False
+) -> Dict[str, Any]:
     """Return status as a dict, using a cache for non-root users
 
     When unattached, get available resources from the contract service
@@ -356,7 +358,15 @@ def status(cfg: UAConfig, show_beta: bool = False) -> Dict[str, Any]:
                 ),
             )
 
-    response = _handle_beta_resources(cfg, show_beta, response)
+    response = _handle_beta_resources(cfg, show_beta or show_all, response)
+
+    if not show_all:
+        available_services = [
+            service
+            for service in response.get("services", [])
+            if service.get("available", "yes") == "yes"
+        ]
+        response["services"] = available_services
 
     return response
 
@@ -378,7 +388,7 @@ def _get_entitlement_information(
 
 
 def simulate_status(
-    cfg, token: str, show_beta: bool = False
+    cfg, token: str, show_beta: bool = False, show_all: bool = False
 ) -> Tuple[Dict[str, Any], int]:
     """Get a status dictionary based on a token.
 
@@ -492,6 +502,14 @@ def simulate_status(
 
     response.update(_get_config_status(cfg))
     response = _handle_beta_resources(cfg, show_beta, response)
+
+    if not show_all:
+        available_services = [
+            service
+            for service in response.get("services", [])
+            if service.get("available", "yes") == "yes"
+        ]
+        response["services"] = available_services
 
     return response, ret
 

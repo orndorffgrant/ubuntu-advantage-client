@@ -22,7 +22,7 @@ M_PATH = "uaclient.cli."
 RESPONSE_AVAILABLE_SERVICES = [
     {"name": "livepatch", "available": True},
     {"name": "fips", "available": False},
-    {"name": "esm-infra", "available": False},
+    {"name": "esm-infra", "available": True},
     {"name": "esm-apps", "available": True},
     {"name": "fips-updates", "available": False},
     {"name": "realtime-kernel", "available": False},
@@ -69,24 +69,33 @@ RESPONSE_CONTRACT_INFO = {
     },
 }
 
-SIMULATED_STATUS = """\
+SIMULATED_STATUS_ALL = """\
 SERVICE          AVAILABLE  ENTITLED   AUTO_ENABLED  DESCRIPTION
 esm-apps         yes        no         yes           Extended Security Maintenance for Applications
-esm-infra        no         yes        yes           Extended Security Maintenance for Infrastructure
+esm-infra        yes        yes        yes           Extended Security Maintenance for Infrastructure
 fips             no         no         no            NIST-certified core packages
 fips-updates     no         no         no            NIST-certified core packages with priority security updates
 livepatch        yes        yes        no            Canonical Livepatch service
+realtime-kernel  no         no         no            Beta-version Ubuntu Kernel with PREEMPT_RT patches
 ros              no         no         no            Security Updates for the Robot Operating System
 ros-updates      no         no         no            All Updates for the Robot Operating System
 """  # noqa: E501
 
-UNATTACHED_STATUS = """\
+SIMULATED_STATUS = """\
+SERVICE          AVAILABLE  ENTITLED   AUTO_ENABLED  DESCRIPTION
+esm-apps         yes        no         yes           Extended Security Maintenance for Applications
+esm-infra        yes        yes        yes           Extended Security Maintenance for Infrastructure
+livepatch        yes        yes        no            Canonical Livepatch service
+"""  # noqa: E501
+
+UNATTACHED_STATUS_ALL = """\
 SERVICE          AVAILABLE  DESCRIPTION
 esm-apps         yes        Extended Security Maintenance for Applications
-esm-infra        no         Extended Security Maintenance for Infrastructure
+esm-infra        yes        Extended Security Maintenance for Infrastructure
 fips             no         NIST-certified core packages
 fips-updates     no         NIST-certified core packages with priority security updates
 livepatch        yes        Canonical Livepatch service
+realtime-kernel  no         Beta-version Ubuntu Kernel with PREEMPT_RT patches
 ros              no         Security Updates for the Robot Operating System
 ros-updates      no         All Updates for the Robot Operating System
 
@@ -94,7 +103,17 @@ This machine is not attached to an Ubuntu Pro subscription.
 See https://ubuntu.com/pro
 """  # noqa: E501
 
-ATTACHED_STATUS = """\
+UNATTACHED_STATUS = """\
+SERVICE          AVAILABLE  DESCRIPTION
+esm-apps         yes        Extended Security Maintenance for Applications
+esm-infra        yes        Extended Security Maintenance for Infrastructure
+livepatch        yes        Canonical Livepatch service
+
+This machine is not attached to an Ubuntu Pro subscription.
+See https://ubuntu.com/pro
+"""  # noqa: E501
+
+ATTACHED_STATUS_ALL = """\
 SERVICE          ENTITLED  STATUS    DESCRIPTION
 esm-apps         no        {dash}         Extended Security Maintenance for Applications
 esm-infra        no        {dash}         Extended Security Maintenance for Infrastructure
@@ -114,15 +133,11 @@ Technical support level: n/a
 """  # noqa: E501
 
 # Omit beta services from status
-ATTACHED_STATUS_NOBETA = """\
+ATTACHED_STATUS = """\
 SERVICE          ENTITLED  STATUS    DESCRIPTION
 esm-apps         no        {dash}         Extended Security Maintenance for Applications
 esm-infra        no        {dash}         Extended Security Maintenance for Infrastructure
-fips             no        {dash}         NIST-certified core packages
-fips-updates     no        {dash}         NIST-certified core packages with priority security updates
 livepatch        no        {dash}         Canonical Livepatch service
-ros              no        {dash}         Security Updates for the Robot Operating System
-ros-updates      no        {dash}         All Updates for the Robot Operating System
 {notices}{features}
 Enable services with: pro enable <service>
 
@@ -174,7 +189,7 @@ SERVICES_JSON_ALL = [
         "name": "fips-updates",
         "status": "—",
         "status_details": "",
-        "available": "yes",
+        "available": "no",
         "blocked_by": [],
     },
     {
@@ -188,13 +203,13 @@ SERVICES_JSON_ALL = [
         "blocked_by": [],
     },
     {
-        "description": "TODO",
+        "description": "Beta-version Ubuntu Kernel with PREEMPT_RT patches",
         "description_override": None,
         "entitled": "no",
         "name": "realtime-kernel",
         "status": "—",
         "status_details": "",
-        "available": "yes",
+        "available": "no",
         "blocked_by": [],
     },
     {
@@ -204,7 +219,7 @@ SERVICES_JSON_ALL = [
         "name": "ros",
         "status": "—",
         "status_details": "",
-        "available": "yes",
+        "available": "no",
         "blocked_by": [],
     },
     {
@@ -212,6 +227,39 @@ SERVICES_JSON_ALL = [
         "description_override": None,
         "entitled": "no",
         "name": "ros-updates",
+        "status": "—",
+        "status_details": "",
+        "available": "no",
+        "blocked_by": [],
+    },
+]
+
+SERVICES_JSON = [
+    {
+        "description": "Extended Security Maintenance for Applications",
+        "description_override": None,
+        "entitled": "no",
+        "name": "esm-apps",
+        "status": "—",
+        "status_details": "",
+        "available": "yes",
+        "blocked_by": [],
+    },
+    {
+        "description": "Extended Security Maintenance for Infrastructure",
+        "description_override": None,
+        "entitled": "no",
+        "name": "esm-infra",
+        "status": "—",
+        "status_details": "",
+        "available": "yes",
+        "blocked_by": [],
+    },
+    {
+        "description": "Canonical Livepatch service",
+        "description_override": None,
+        "entitled": "no",
+        "name": "livepatch",
         "status": "—",
         "status_details": "",
         "available": "yes",
@@ -361,7 +409,7 @@ class TestActionStatus:
         # a specific test that the correct one is used in
         # test_unicode_dash_replacement_when_unprintable
         expected_dash = "-"
-        status_tmpl = ATTACHED_STATUS if use_all else ATTACHED_STATUS_NOBETA
+        status_tmpl = ATTACHED_STATUS_ALL if use_all else ATTACHED_STATUS
 
         if sys.stdout.encoding and "UTF-8" in sys.stdout.encoding.upper():
             expected_dash = "\u2014"
@@ -374,6 +422,13 @@ class TestActionStatus:
             == printable_stdout
         )
 
+    @pytest.mark.parametrize(
+        "use_all",
+        (
+            (True),
+            (False),
+        ),
+    )
     def test_unattached(
         self,
         _m_getuid,
@@ -382,17 +437,26 @@ class TestActionStatus:
         _m_should_reboot,
         _m_remove_notice,
         _m_contract_changed,
+        use_all,
         capsys,
         FakeConfig,
     ):
         """Check that unattached status is emitted to console"""
         cfg = FakeConfig()
 
+        expected = UNATTACHED_STATUS_ALL if use_all else UNATTACHED_STATUS
         assert 0 == action_status(
-            mock.MagicMock(all=False, simulate_with_token=None), cfg=cfg
+            mock.MagicMock(all=use_all, simulate_with_token=None), cfg=cfg
         )
-        assert UNATTACHED_STATUS == capsys.readouterr()[0]
+        assert expected == capsys.readouterr()[0]
 
+    @pytest.mark.parametrize(
+        "use_all",
+        (
+            (True),
+            (False),
+        ),
+    )
     def test_simulated(
         self,
         _m_getuid,
@@ -401,17 +465,19 @@ class TestActionStatus:
         _m_should_reboot,
         _m_remove_notice,
         _m_contract_changed,
+        use_all,
         capsys,
         FakeConfig,
     ):
         """Check that a simulated status is emitted to console"""
         cfg = FakeConfig()
+        expected = SIMULATED_STATUS_ALL if use_all else SIMULATED_STATUS
 
         assert 0 == action_status(
-            mock.MagicMock(all=False, simulate_with_token="some_token"),
+            mock.MagicMock(all=use_all, simulate_with_token="some_token"),
             cfg=cfg,
         )
-        assert SIMULATED_STATUS == capsys.readouterr()[0]
+        assert expected == capsys.readouterr()[0]
 
     @mock.patch("uaclient.version.get_version", return_value="test_version")
     @mock.patch("uaclient.util.subp")
@@ -448,6 +514,13 @@ class TestActionStatus:
         assert "...\n" + UNATTACHED_STATUS == capsys.readouterr()[0]
 
     @pytest.mark.parametrize(
+        "use_all",
+        (
+            (True),
+            (False),
+        ),
+    )
+    @pytest.mark.parametrize(
         "format_type,event_logger_mode",
         (("json", EventLoggerMode.JSON), ("yaml", EventLoggerMode.YAML)),
     )
@@ -474,6 +547,7 @@ class TestActionStatus:
         environ,
         format_type,
         event_logger_mode,
+        use_all,
         capsys,
         FakeConfig,
         event,
@@ -482,7 +556,7 @@ class TestActionStatus:
         cfg = FakeConfig()
 
         args = mock.MagicMock(
-            format=format_type, all=False, simulate_with_token=None
+            format=format_type, all=use_all, simulate_with_token=None
         )
         with mock.patch.object(os, "environ", environ):
             with mock.patch.object(
@@ -498,17 +572,14 @@ class TestActionStatus:
                 {"name": "UA_FEATURES_ALLOW_BETA", "value": "true"},
             ]
 
-        expected_services = [
+        services = SERVICES_JSON_ALL if use_all else SERVICES_JSON
+        services = [
             {
-                "name": "esm-apps",
-                "description": "Extended Security Maintenance for Applications",  # noqa
-                "available": "yes",
-            },
-            {
-                "name": "livepatch",
-                "description": "Canonical Livepatch service",
-                "available": "yes",
-            },
+                "name": service["name"],
+                "description": service["description"],
+                "available": service["available"],
+            }
+            for service in services
         ]
 
         expected = {
@@ -526,7 +597,7 @@ class TestActionStatus:
             "expires": None,
             "features": {},
             "notices": [],
-            "services": expected_services,
+            "services": services,
             "environment_vars": expected_environment,
             "contract": {
                 "id": "",
@@ -608,26 +679,7 @@ class TestActionStatus:
                 {"name": "UA_FEATURES_ALLOW_BETA", "value": "true"},
             ]
 
-        if use_all:
-            services = SERVICES_JSON_ALL
-        else:
-            services = [
-                svc
-                for svc in SERVICES_JSON_ALL
-                if svc["name"] not in BETA_SVC_NAMES
-            ]
-
-        inapplicable_services = [
-            service["name"]
-            for service in RESPONSE_AVAILABLE_SERVICES
-            if not service["available"]
-        ]
-
-        filtered_services = [
-            service
-            for service in services
-            if service["name"] not in inapplicable_services
-        ]
+        services = SERVICES_JSON_ALL if use_all else SERVICES_JSON
 
         if format_type == "json":
             contract_created_at = "2020-05-08T19:02:26+00:00"
@@ -664,7 +716,7 @@ class TestActionStatus:
             "expires": expires,
             "features": {},
             "notices": [],
-            "services": filtered_services,
+            "services": services,
             "environment_vars": expected_environment,
             "contract": {
                 "id": "cid",
@@ -765,7 +817,7 @@ class TestActionStatus:
             },
             {
                 "auto_enabled": "yes",
-                "available": "no",
+                "available": "yes",
                 "description": "Extended Security Maintenance for Infrastructure",  # noqa
                 "entitled": "yes",
                 "name": "esm-infra",
@@ -813,7 +865,11 @@ class TestActionStatus:
             services + beta_services, key=lambda x: x["name"]
         )
         if not use_all:
-            expected_services = services
+            expected_services = [
+                service
+                for service in services
+                if service["available"] == "yes"
+            ]
 
         expected = {
             "_doc": "Content provided in json response is currently considered"
@@ -878,6 +934,7 @@ class TestActionStatus:
                 mock.MagicMock(all=False, simulate_with_token=None), cfg=cfg
             )
 
+    @pytest.mark.parametrize("use_all", (True, False))
     @pytest.mark.parametrize(
         "encoding,expected_dash",
         (("utf-8", "\u2014"), ("UTF-8", "\u2014"), ("ascii", "-")),
@@ -892,6 +949,7 @@ class TestActionStatus:
         _m_contract_changed,
         encoding,
         expected_dash,
+        use_all,
         FakeConfig,
     ):
         # This test can't use capsys because it doesn't emulate sys.stdout
@@ -901,7 +959,7 @@ class TestActionStatus:
 
         with mock.patch("sys.stdout", fake_stdout):
             action_status(
-                mock.MagicMock(all=True, simulate_with_token=None),
+                mock.MagicMock(all=use_all, simulate_with_token=None),
                 cfg=FakeConfig.for_attached_machine(),
             )
 
@@ -912,9 +970,15 @@ class TestActionStatus:
         # comparison
         out = out.replace(" " * 17, " " * 8)
 
-        expected_out = ATTACHED_STATUS.format(
-            dash=expected_dash, notices="", features=""
-        )
+        if not use_all:
+            expected_out = ATTACHED_STATUS.format(
+                dash=expected_dash, notices="", features=""
+            )
+        else:
+            expected_out = ATTACHED_STATUS_ALL.format(
+                dash=expected_dash, notices="", features=""
+            )
+
         assert expected_out == out
 
     @pytest.mark.parametrize(
