@@ -7,19 +7,14 @@ Feature: Command behaviour when attaching a machine to an Ubuntu Pro
     Scenario Outline: Attached command in a non-lts ubuntu machine
         Given a `<release>` machine with ubuntu-advantage-tools installed
         When I attach `contract_token` with sudo
-        And I run `pro status --all` as non-root
-        Then stdout matches regexp:
-            """
-            SERVICE       +ENTITLED  STATUS    DESCRIPTION
-            cc-eal        +yes      +n/a      +Common Criteria EAL2 Provisioning Packages
-            cis           +yes      +n/a      +Security compliance and audit tools
-            esm-apps      +yes      +n/a      +Extended Security Maintenance for Applications
-            esm-infra     +yes      +n/a      +Extended Security Maintenance for Infrastructure
-            fips          +yes      +n/a      +NIST-certified core packages
-            fips-updates  +yes      +n/a      +NIST-certified core packages with priority security updates
-            livepatch     +yes      +n/a      +Canonical Livepatch service
-            """
-
+        Then the machine is attached
+        And `cc-eal` is not available
+        And `cis` is not available
+        And `esm-apps` is not available
+        And `esm-infra` is not available
+        And `fips` is not available
+        And `fips-updates` is not available
+        And `livepatch` is not available
         Examples: ubuntu release
             | release |
             | kinetic |
@@ -52,6 +47,10 @@ Feature: Command behaviour when attaching a machine to an Ubuntu Pro
         \d+ update(s)? can be applied immediately.
         """
         When I attach `contract_token` with sudo
+        And stderr matches regexp:
+        """
+        Enabling default service esm-infra
+        """
         Then stdout matches regexp:
         """
         Ubuntu Pro: ESM Infra enabled
@@ -63,24 +62,15 @@ Feature: Command behaviour when attaching a machine to an Ubuntu Pro
         And stdout matches regexp:
         """
         SERVICE      +ENTITLED  STATUS    DESCRIPTION
-        cc-eal       +yes      +<cc_status>     +Common Criteria EAL2 Provisioning Packages
         """
-        And stdout matches regexp:
-        """
-        esm-apps     +yes      +enabled  +Extended Security Maintenance for Applications
-        esm-infra    +yes      +enabled  +Extended Security Maintenance for Infrastructure
-        fips         +yes      +<fips> +NIST-certified core packages
-        fips-updates +yes      +<fips> +NIST-certified core packages with priority security updates
-        livepatch    +yes      +n/a      +<livepatch_desc>
-        """
-        And stdout matches regexp:
-        """
-        <cis_or_usg> +yes      +<cis>        +Security compliance and audit tools
-        """
-        And stderr matches regexp:
-        """
-        Enabling default service esm-infra
-        """
+        Then `cc-eal` is status `<cc_status>`
+        Then `esm-apps` is enabled
+        Then `esm-infra` is enabled
+        Then `fips` is status `<fips>`
+        Then `fips-updates` is status `<fips>`
+        Then `livepatch` is status `n/a`
+        Then `<cis_or_usg>` is status `<cis>`
+
         When I verify that running `pro attach contract_token` `with sudo` exits `2`
         Then stderr matches regexp:
         """

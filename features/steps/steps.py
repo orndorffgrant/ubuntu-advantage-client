@@ -1017,6 +1017,67 @@ def api_response_matches_schema(context, output_format, schema):
         )
 
 
+@then("the `{machine}` machine is attached")
+def then_the_named_machine_is_attached(context, machine):
+    then_the_machine_is_attached(context, machine)
+
+
+def _get_status_json(context, machine):
+    when_i_run_command_on_machine(
+        context,
+        "pro status --format=json --all",
+        "with sudo",
+        instance_name=machine,
+    )
+    return json.loads(context.process.stdout.strip())
+
+
+def _get_service_status_json(context, machine, status):
+    status = _get_status_json(context, machine)
+    return next(
+        (s for s in status.get("services", []) if s.get("name") == service), {}
+    )
+
+
+@then("the machine is attached")
+def then_the_machine_is_attached(context, machine="uaclient"):
+    when_i_run_command_on_machine(
+        context, "pro status --format=json", "with sudo", instance_name=machine
+    )
+    status = json.loads(context.process.stdout.strip())
+    assert_that(status.get("attached", False))
+
+
+@then("`{service}` is status `{status}`")
+def then_service_is_enabled(context, service, status, machine="uaclient"):
+    service_status = _get_service_status_json(context, machine, service)
+    assert_that(service_status.get("status"), equal_to(status))
+
+
+@then("`{service}` is enabled")
+def then_service_is_enabled(context, service, machine="uaclient"):
+    service_status = _get_service_status_json(context, machine, service)
+    assert_that(service_status.get("status"), equal_to("enabled"))
+
+
+@then("`{service}` is disabled")
+def then_service_is_disabled(context, service, machine="uaclient"):
+    service_status = _get_service_status_json(context, machine, service)
+    assert_that(service_status.get("status"), equal_to("disabled"))
+
+
+@then("`{service}` is available")
+def then_service_is_available(context, service, machine="uaclient"):
+    service_status = _get_service_status_json(context, machine, service)
+    assert_that(service_status.get("available"), equal_to("yes"))
+
+
+@then("`{service}` is not available")
+def then_service_is_available(context, service, machine="uaclient"):
+    service_status = _get_service_status_json(context, machine, service)
+    assert_that(service_status.get("available"), equal_to("no"))
+
+
 @then("`{file_name}` is not present in any docker image layer")
 def file_is_not_present_in_any_docker_image_layer(context, file_name):
     when_i_run_command(
